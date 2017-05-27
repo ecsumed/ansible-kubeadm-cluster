@@ -1,3 +1,11 @@
+###############################################################################
+# Example invocation:
+# ansible-playbook cluster-create.yml -e "cluster_name=foo"
+#
+###############################################################################
+# Required args:
+# cluster_name
+###############################
 ---
 
 - hosts: "{{ cluster_name }}_node"
@@ -11,7 +19,6 @@
       - kubernetes-cni
 
   tasks:
-
     - name: Reset kubeadm
       command: /usr/bin/kubeadm reset
       async: 45
@@ -52,20 +59,15 @@
       ignore_errors: true
 
 - hosts: "{{ cluster_name }}_master"
-
   become: true
-
   vars:
-
     kubeadm_packages:
       - docker.io
       - kubelet
       - kubeadm
       - kubectl
       - kubernetes-cni  
-
   tasks:
-
     - name: Reset kubeadm
       command: /usr/bin/kubeadm reset
       async: 45
