@@ -1,0 +1,4 @@
+---
+
+networking_addons: ["https://rawgit.com/coreos/flannel/master/Documentation/kube-flannel-rbac.yml",
+                    "https://rawgit.com/coreos/flannel/master/Documentation/kube-flannel.yml"]

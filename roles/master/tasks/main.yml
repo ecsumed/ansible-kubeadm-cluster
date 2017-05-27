@@ -1,0 +1,37 @@
+---
+# tasks file for master node init
+
+# Initialize master
+# Step (2/4) http://kubernetes.io/docs/getting-started-guides/kubeadm/
+
+- set_fact:
+    master_ip_address: "{{ master_ip_address_configured }}"
+  when: master_ip_address_configured is defined
+
+- set_fact:
+    master_ip_address: "{{ ansible_default_ipv4['address'] }}"
+  when: master_ip_address_configured is not defined
+
+- name: Initialize master
+  command: kubeadm init --token {{ admission_token }} --pod-network-cidr=10.244.0.0/16
+  args:
+    creates: /etc/kubernetes/pki
+  register: master_init
+
+- name: Export KUBECONFIG path
+  copy: dest=/root/.bashrc
+    content='export KUBECONFIG=~/admin.conf'       
+    owner=root
+    group=root
+    mode=0644
+
+- name: Source the bashrc file
+  shell: source /root/.bashrc
+
+- name: Copy /etc/kubernetes/admin.conf on master to cfg/cluster_name/admin.conf
+  shell: cp /etc/kubernetes/admin.conf ~
+
+# Implements Step 3 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
+# (3/4) Installing a pod network
+
+- include: pod-network.yml

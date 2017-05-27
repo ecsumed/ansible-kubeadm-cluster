@@ -1,141 +1,47 @@
-#
+###############################################################################
 # Example invocation:
-#    ansible-playbook cluster-create.yml -e "cluster_name=foo"
+# ansible-playbook cluster-create.yml -e "cluster_name=foo master_ip_address=<ip> admission_token=<token>"
 #
+###############################################################################
+# Required args:
+# cluster_name
+# master_ip_address
+# admission_token
+###############################
 ---
 
-- hosts: localhost
-  gather_facts: false
-
-  roles:
-
-    - role: admission_token
-      tags:
-        - token
-
-  tasks:
-
-    - debug:
-        var: admission_token
-      tags:
-        - token
-
-# Implements Step 1 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
-# (1/4) Installing kubelet and kubeadm on your hosts
+# Installing kubelet and kubeadm on your hosts
+# Step (1/4) http://kubernetes.io/docs/getting-started-guides/kubeadm/
 
 - hosts: "{{ cluster_name }}"
-
   become: true
-
   roles:
-
-    - role: kubeadm_install
+    - role: common
       tags:
         - repo
         - master
         - nodes
 
-# Implements Step 2 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
-# (2/4) Initializing your master
+# Initialize master
+# Step (2/4) and (3/4) http://kubernetes.io/docs/getting-started-guides/kubeadm/
 
 - hosts: "{{ cluster_name }}_master"
-
   become: true
-
-  pre_tasks:
-
-    - name: Read token from file
-      include_vars: cfg/{{ cluster_name }}/token.yml
-
-  tasks:
-
-    - set_fact:
-        master_ip_address: "{{ master_ip_address_configured }}"
-      when: master_ip_address_configured is defined
-
-    - set_fact:
-        master_ip_address: "{{ ansible_default_ipv4['address'] }}"
-      when: master_ip_address_configured is not defined
-
-    - name: Save master_ip_address
-      shell: "echo master_ip_address{{ ':' }} {{ master_ip_address }} > cfg/{{ cluster_name }}/master_ip_address.yml"
-      delegate_to: 127.0.0.1
-      become: false
-
-    - name: Initialize master
-      command: kubeadm init --token {{ admission_token }}
-      args:
-        creates: /etc/kubernetes/pki # Not 100% sure that the creates clause is correct
-      register: master_init
-      ignore_errors: true
+  roles:
+    - role: master
       tags:
         - master
         - init
 
-    - name: Copy /etc/kubernetes/admin.conf on master to cfg/cluster_name/admin.conf
-      fetch:
-        src: /etc/kubernetes/admin.conf
-        dest: cfg/{{ cluster_name }}/admin.conf
-        flat: true
-      tags:
-        - master
-        - remote        
-
-    # Implements Step 3 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
-    # (3/4) Installing a pod network
-
-    - name: Install pod network
-      command: /usr/bin/kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://git.io/weave-kube-1.6
-      register: pod_network
-      tags:
-        - master
-        - network
-      ignore_errors: true
-
-    - debug:
-        var: pod_network.stdout_lines        
-
-    - name: Wait for Kube-DNS pod running
-      shell: "kubectl --kubeconfig /etc/kubernetes/admin.conf get pods --all-namespaces | grep kube-dns"
-      register: result
-      until: result.stdout.find("Running") != -1
-      retries: 30
-      delay: 10        
-
-# Implements Step 4 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
-# (4/4) Joining your nodes
+# Joining nodes
+# Step (4/4) http://kubernetes.io/docs/getting-started-guides/kubeadm/
         
 - hosts: "{{ cluster_name }}_node"
-
   become: true
-
-  pre_tasks:
-
-    - name: Read token from file
-      include_vars: cfg/{{ cluster_name }}/token.yml
-      
-    - name: Read master_ip_address from file
-      include_vars: cfg/{{ cluster_name }}/master_ip_address.yml
-
-  tasks:
-
-    - debug:
-        var: admission_token
-      run_once: true
-
-    - debug:
-        var: master_ip_address
-      run_once: true
-
-    - name: Join nodes to cluster
-      command: kubeadm join --token {{ admission_token }} {{ master_ip_address }}:6443
-      args:
-        creates: /etc/kubernetes/kubelet.conf # Not 100% sure that the creates clause is correct
-      register: node_join
-      ignore_errors: true
+  roles:
+    - role: nodes
       tags:
         - nodes
         - join
 
-    - debug:
-        var: node_join.stdout_lines
+

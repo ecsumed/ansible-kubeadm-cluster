@@ -1,7 +1,4 @@
----
-
-# Implements the Ubuntu portion of Step 1 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
-
+# 
 # curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 # cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
 # deb http://apt.kubernetes.io/ kubernetes-xenial main
@@ -10,7 +7,7 @@
 # apt-get install -y docker.io kubelet kubeadm kubectl kubernetes-cni
 
 - name: Install apt-transport-https
-  apt:
+  apt: 
     name: apt-transport-https
     state: latest
     update_cache: true
@@ -23,7 +20,6 @@
 - name: Add Kubernetes apt repo
   apt_repository:
     repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial main'
-    # repo: 'deb http://apt.kubernetes.io/ kubernetes-xenial-unstable main' # Needed for 1.6 release SNAFU
     filename: kubernetes
     state: present
 
