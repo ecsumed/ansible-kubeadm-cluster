@@ -5,16 +5,15 @@
 # (3/4) Installing a pod network
 
 - name: Install pod network
-  shell: curl -sSL {{ item }} | kubectl create -f -
+  shell: "curl -sSL {{ item }} | kubectl --kubeconfig /etc/kubernetes/admin.conf create -f -"
   register: pod_network
   with_items: "{{ networking_addons }}"
   tags:
     - master
     - network
-  ignore_errors: true
 
 - debug:
-    var: pod_network.stdout_lines        
+    var: pod_network.stdout_lines 
 
 - name: Wait for Kube-DNS pod running
   shell: "kubectl --kubeconfig /etc/kubernetes/admin.conf get pods --all-namespaces | grep kube-dns"

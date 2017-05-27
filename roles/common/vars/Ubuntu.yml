@@ -1,7 +1,7 @@
 ---
 
 kubeadm_packages:
-  - docker.io
+  - docker-engine
   - kubelet
   - kubeadm
   - kubectl

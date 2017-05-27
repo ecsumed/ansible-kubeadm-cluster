@@ -12,13 +12,20 @@
     master_ip_address: "{{ ansible_default_ipv4['address'] }}"
   when: master_ip_address_configured is not defined
 
+- name: Fail if invalid token
+  fail:
+    msg: "Invalid value: '{{ admission_token }}': token must be of form '[a-z0-9]{6}.[a-z0-9]{16}'"
+  when: not {{ admission_token | match("[a-z0-9]{6}.[a-z0-9]{16}") }}
+
 - name: Initialize master
   command: kubeadm init --token {{ admission_token }} --pod-network-cidr=10.244.0.0/16
-  args:
-    creates: /etc/kubernetes/pki
   register: master_init
 
-- name: Export KUBECONFIG path
+
+- name: Copy /etc/kubernetes/admin.conf on master to ~ (home)
+  shell: cp /etc/kubernetes/admin.conf ~
+
+- name: Export KUBECONFIG path by creating a .bashrc
   copy: dest=/root/.bashrc
     content='export KUBECONFIG=~/admin.conf'       
     owner=root
@@ -26,10 +33,7 @@
     mode=0644
 
 - name: Source the bashrc file
-  shell: source /root/.bashrc
-
-- name: Copy /etc/kubernetes/admin.conf on master to cfg/cluster_name/admin.conf
-  shell: cp /etc/kubernetes/admin.conf ~
+  shell: bash /root/.bashrc
 
 # Implements Step 3 of http://kubernetes.io/docs/getting-started-guides/kubeadm/
 # (3/4) Installing a pod network
