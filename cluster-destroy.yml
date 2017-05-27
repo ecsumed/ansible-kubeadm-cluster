@@ -1,13 +1,8 @@
 ---
 
-- hosts: localhost
-
 - hosts: "{{ cluster_name }}_node"
-
   become: true
-
   vars:
-
     kubeadm_packages:
       - docker.io
       - kubelet
